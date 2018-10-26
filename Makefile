@@ -2,7 +2,7 @@ all:
 	echo "Don't run make without arguments"
 
 format:
-	isort .
+	isort --recursive .
 	black .
 
 push: format
