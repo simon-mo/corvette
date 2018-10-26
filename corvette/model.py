@@ -10,12 +10,34 @@ class ModelActorBase(object):
         self.metric = {"batch_size": []}
 
     def predict(self, input_batch):
-        pass
+        """Base method for accepting a batch of request. 
+
+        Note:
+            input_batch has the following format:
+            [
+                (inp_1, return_oid_1),
+                (inp_2, return_oid_2),
+                ... 
+            ]
+        
+        Arguments:
+            input_batch {List of tuples} -- shape outlined above
+        """
+
+        raise NotImplementedError("To be implemented in base class!")
 
     def get_metric(self):
         return self.metric
 
     def put_object(self, oid, obj):
+        """Helper function for putting an object into worker when this
+        oid is already provisioned
+        
+        Arguments:
+            oid {ray.ObjectID} -- The provisioned object id
+            obj {object} -- Any object plasma accepts
+        """
+
         ray.worker.global_worker.put_object(oid, obj)
 
 
