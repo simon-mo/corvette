@@ -46,7 +46,7 @@ def test_batching(initialize_ray, query_frontend):
         result_oids.append(send_predict(query_frontend, model_name, i))
     ray.get(result_oids)
 
-    metrics = ray.get(query_frontend.get_metric.remote())["sleep"]["batch_size"]
+    metrics = ray.get(query_frontend.get_metric.remote())[("sleep", 0)]["batch_size"]
     assert 2 in metrics
 
 
@@ -77,3 +77,37 @@ def test_noop(initialize_ray, query_frontend, benchmark):
     @benchmark
     def send_noop_and_wait():
         ray.get(send_predict(query_frontend, model_name, ""))
+
+
+def test_replicas(initialize_ray, query_frontend):
+    model_name = "sleep_replicated"
+    query_frontend.add_model.remote(model_name, SleepModelActor)
+    query_frontend.scale_up_model.remote(model_name, SleepModelActor, 3)
+
+    result_oids = []
+    inputs = list(range(30))
+    for i in inputs:
+        result_oids.append(send_predict(query_frontend, model_name, i))
+    ray.get(result_oids)
+
+    metrics = ray.get(query_frontend.get_metric.remote())
+    for (name, replica_id), metric in metrics.items():
+        if name == model_name:
+            assert len(metric["batch_size"]) != 0
+
+
+def test_pipeline(initialize_ray, query_frontend):
+    model_1 = "noop_1"
+    model_2 = "noop_2"
+    query_frontend.add_model.remote(model_1, NoopModelActor)
+    query_frontend.add_model.remote(model_2, NoopModelActor)
+
+    # test materialization
+    model_1_result = ray.get(send_predict(query_frontend, model_1, ""))
+    model_2_result = ray.get(send_predict(query_frontend, model_2, model_1_result))
+    assert model_2_result == ""
+
+    # test no materialization
+    model_1_result = send_predict(query_frontend, model_1, "")
+    model_2_result = ray.get(send_predict(query_frontend, model_2, model_1_result))
+    assert model_2_result == ""

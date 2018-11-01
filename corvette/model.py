@@ -23,8 +23,15 @@ class ModelActorBase(object):
         Arguments:
             input_batch {List of tuples} -- shape outlined above
         """
+        data_oids = [doid for (doid, _) in input_batch]
+        result_oids = [roid for (_, roid) in input_batch]
+        input_batch = ray.get(data_oids)
+        result_batch = self.predict_batch(input_batch)
+        for result, result_oid in zip(result_batch, result_oids):
+            self.put_object(result_oid, result)
 
-        raise NotImplementedError("To be implemented in base class!")
+    def predict_batch(self, input_batch):
+        raise NotImplementedError("Abstract method: to be implemented")
 
     def get_metric(self):
         return self.metric
@@ -43,27 +50,24 @@ class ModelActorBase(object):
 
 @ray.remote
 class NoopModelActor(ModelActorBase):
-    def predict(self, input_batch):
-        for _, return_oid in input_batch:
-            self.put_object(return_oid, "")
+    def predict_batch(self, input_batch):
+        return ["" for _ in range(len(input_batch))]
 
 
 @ray.remote
 class SleepModelActor(ModelActorBase):
-    def predict(self, input_batch):
-        time.sleep(0.1)
+    def predict_batch(self, input_batch):
+        time.sleep(0.2)
 
         self.metric["batch_size"].append(len(input_batch))
 
-        for _, return_oid in input_batch:
-            self.put_object(return_oid, "")
+        return ["" for _ in range(len(input_batch))]
 
 
 @ray.remote
 class IdentityModelActor(ModelActorBase):
-    def predict(self, input_batch):
-        for input_data, return_oid in input_batch:
-            self.put_object(return_oid, ray.get(input_data))
+    def predict_batch(self, input_batch):
+        return input_batch
 
 
 @ray.remote
@@ -76,9 +80,8 @@ class SKLearnModelActor(ModelActorBase):
 
         super().__init__()
 
-    def predict(self, input_batch):
-        for input_data, return_oid in input_batch:
-            inp = ray.get(input_data)
-            if inp.ndim == 1:
-                inp = inp.reshape(1, -1)
-            self.put_object(return_oid, self.model.predict(inp))
+    def predict_batch(self, input_batch):
+        inp = np.array(input_batch)
+        if inp.ndim == 1:
+            inp = inp.reshape(1, -1)
+        return self.model.predict(inp)
