@@ -75,8 +75,8 @@ def pipeline(port, materialize):
         upstream = send_predict(query_frontend, "sleep_1", "")
         if materialize:
             upstream = ray.get(upstream)
-        downstream_1 = send_predict(query_frontend, "sleep_2", "")
-        downstream_2 = send_predict(query_frontend, "sleep_3", "")
+        downstream_1 = send_predict(query_frontend, "sleep_2", upstream)
+        downstream_2 = send_predict(query_frontend, "sleep_3", upstream)
         ray.get([downstream_1, downstream_2])
 
     while True:
