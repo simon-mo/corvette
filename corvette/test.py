@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 import ray
@@ -6,6 +8,8 @@ from sklearn.linear_model import LinearRegression
 from driver import send_predict
 from frontend import QueryFrontend
 from model import IdentityModelActor, NoopModelActor, SKLearnModelActor, SleepModelActor
+
+os.environ["RAY_USE_XRAY"] = "1"
 
 
 @pytest.fixture(scope="session")
