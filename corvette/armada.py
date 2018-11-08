@@ -43,6 +43,7 @@ def pipeline(port, n_replicas, batch_size):
     query_frontend.add_model.remote("ensemble", ArmadaAverageEnsembleModel)
 
     start_http_server(port, addr="0.0.0.0")
+    click.echo(f"Server started at http://0.0.0.0:{port}")
     metric = Summary("pipeline_seconds", "Time spent processing one noop prediction")
 
     input_image = np.random.randn(batch_size, 224, 224, 3)
@@ -59,8 +60,6 @@ def pipeline(port, n_replicas, batch_size):
 
     while True:
         process_request(input_image)
-
-    click.echo(f"Server started at http://0.0.0.0:{port}")
 
 
 demo()

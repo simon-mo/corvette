@@ -7,7 +7,10 @@ name = "pypi"
 
 [packages]
 
-ray = "*"
+ray = """
+https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.5.3-cp36-cp36m-macosx_10_6_intel.whl\
+"""
+"978499a" = {file = "https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.5.3-cp36-cp36m-macosx_10_6_intel.whl"}
 
 
 [dev-packages]

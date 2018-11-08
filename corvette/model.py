@@ -5,6 +5,7 @@ import ray
 import torch
 from skimage import filters
 from sklearn.linear_model import LinearRegression
+
 from torchvision import models
 
 
@@ -26,13 +27,14 @@ class ModelActorBase(object):
         Arguments:
             input_batch {List of tuples} -- shape outlined above
         """
-        # def ensure_nested_get(doid):
-        #     if isinstance(doid, list) and isinstance(doid[0], ray.ObjectID):
-        #         return ray.get(doid)
-        #     return doid
-        get_name = lambda: self.__class__.__name__
-        print(get_name(), input_batch)
-        data_oids = [ray.get(doid) for (doid, _) in input_batch]
+
+        def ensure_nested_get(doid):
+            # if the doid is a list of oid, do a get on that
+            if isinstance(doid, list) and isinstance(doid[0], ray.ObjectID):
+                return ray.get(doid)
+            return doid
+
+        data_oids = [ensure_nested_get(ray.get(doid)) for (doid, _) in input_batch]
         result_oids = [roid for (_, roid) in input_batch]
         input_batch = data_oids
         result_batch = self.predict_batch(input_batch)
@@ -100,8 +102,9 @@ class SKLearnModelActor(ModelActorBase):
 @ray.remote
 class ArmadaPreprocessModel(ModelActorBase):
     def predict_batch(self, input_batch):
-        input_batch = np.array(input_batch)
-        assert input_batch.shape == (len(input_batch), 224, 224, 3)
+        # data will come in (external_batch_size, internal_batch_size, 224, 224, 3)
+        input_batch = np.array(input_batch).squeeze(axis=1)
+        assert input_batch.shape == (len(input_batch), 224, 224, 3), input_batch.shape
         return filters.gaussian(input_batch).reshape(len(input_batch), 3, 224, 224)
 
 
