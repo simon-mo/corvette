@@ -35,7 +35,8 @@ class QueryFrontend:
             self.model_actors[model_name].append(model_class.remote())
 
     def predict(self, model_name, query):
-        data_oid = ray.put(query)
+        # data_oid = ray.put(query)
+        data_oid = query[0]
         result_oid = self._new_oid()
         self.models_queues[model_name].append((data_oid, result_oid))
         return [result_oid]

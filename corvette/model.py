@@ -2,7 +2,10 @@ import time
 
 import numpy as np
 import ray
+import torch
+from skimage import filters
 from sklearn.linear_model import LinearRegression
+from torchvision import models
 
 
 class ModelActorBase(object):
@@ -23,9 +26,15 @@ class ModelActorBase(object):
         Arguments:
             input_batch {List of tuples} -- shape outlined above
         """
-        data_oids = [doid for (doid, _) in input_batch]
+        # def ensure_nested_get(doid):
+        #     if isinstance(doid, list) and isinstance(doid[0], ray.ObjectID):
+        #         return ray.get(doid)
+        #     return doid
+        get_name = lambda: self.__class__.__name__
+        print(get_name(), input_batch)
+        data_oids = [ray.get(doid) for (doid, _) in input_batch]
         result_oids = [roid for (_, roid) in input_batch]
-        input_batch = ray.get(data_oids)
+        input_batch = data_oids
         result_batch = self.predict_batch(input_batch)
         for result, result_oid in zip(result_batch, result_oids):
             self.put_object(result_oid, result)
@@ -85,3 +94,37 @@ class SKLearnModelActor(ModelActorBase):
         if inp.ndim == 1:
             inp = inp.reshape(1, -1)
         return self.model.predict(inp)
+
+
+#  Armada Pipeline
+@ray.remote
+class ArmadaPreprocessModel(ModelActorBase):
+    def predict_batch(self, input_batch):
+        input_batch = np.array(input_batch)
+        assert input_batch.shape == (len(input_batch), 224, 224, 3)
+        return filters.gaussian(input_batch).reshape(len(input_batch), 3, 224, 224)
+
+
+@ray.remote
+class ArmadaSqueezenetModel(ModelActorBase):
+    def __init__(self):
+        self.model = models.squeezenet1_1()
+
+    def predict_batch(self, input_batch):
+        input_batch = np.array(input_batch)
+        assert input_batch.shape == (len(input_batch), 3, 224, 224)
+
+        with torch.no_grad():
+            result = (
+                self.model(torch.tensor(input_batch.astype(np.float32)))
+                .detach()
+                .numpy()
+            )
+
+        return result
+
+
+@ray.remote
+class ArmadaAverageEnsembleModel(ModelActorBase):
+    def predict_batch(self, input_batch):
+        return np.mean(np.array(input_batch), axis=0)
