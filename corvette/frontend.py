@@ -42,7 +42,11 @@ class QueryFrontend:
         return [result_oid]
 
     def loop(self, actor_obj):
-        ready, _ = ray.wait(list(self.pending_queries.keys()), timeout=0)
+        ready, _ = ray.wait(
+            list(self.pending_queries.keys()),
+            num_returns=len(self.pending_queries),
+            timeout=0,
+        )
         models_finished = set()
         for ready_oid in ready:
             models_finished.add(self.pending_queries.pop(ready_oid))
