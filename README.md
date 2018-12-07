@@ -20,6 +20,8 @@ Our only hard dependency is `ray[dev]`. Please install it via `pip install ray[d
 For full development dependency, please see `Pipfile` or `requirements.txt`.
 
 ## Example
+Try out `cd corvette; python demo.py` (requires sklearn and pytorch).
+
 ```python
 from corvette.models import SKlearnModelActor, NoopModelActor
 from corvette.driver import send_predict
