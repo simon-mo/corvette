@@ -14,6 +14,11 @@ Features in the timeline:
 
 Again, this is a prototype only. For production usage, we built [Clipper](http://clipper.ai), a real-time online prediction serving system. 
 
+## Dependencies
+Our only hard dependency is `ray[dev]`. Please install it via `pip install ray[dev]`.
+
+For full development dependency, please see `Pipfile` or `requirements.txt`.
+
 ## Example
 ```python
 from corvette.models import SKlearnModelActor, NoopModelActor
