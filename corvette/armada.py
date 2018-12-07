@@ -30,7 +30,7 @@ def demo():
 )
 @click.option("--batch-size", "-b", help="batch size of input", default=1)
 def pipeline(port, n_replicas, batch_size):
-    ray.init(use_raylet=True)
+    ray.init()
 
     # batchsize 1
     query_frontend = QueryFrontend.remote(batch_size)
