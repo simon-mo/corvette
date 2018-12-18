@@ -14,7 +14,7 @@ class QueryFrontend:
         self.batch_size = batch_size
 
     def _new_oid(self):
-        oid = self.worker.local_scheduler_client.compute_put_id(
+        oid = self.worker.raylet_client.compute_put_id(
             self.worker.current_task_id, self.worker.put_index
         )
         self.worker.put_index += 1
